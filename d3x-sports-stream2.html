@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="referrer" content="no-referrer">
+<title>D3X Sports // Stream 2</title>
+<!-- Using Shaka Player 5.1.8 for best DASH and DRM support -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/controls.css">
+<style>
+/* Base Styles */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+.shaka-video-container{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
+video{width:100%;height:100%;object-fit:contain;background:#000}
+/* Hide Default Shaka Spinner */
+.shaka-spinner-container,.shaka-spinner,.shaka-spinner-svg{display:none!important}
+.shaka-controls-container button{color:#fff!important}
+/* Custom Loading Spinner */
+#loader{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s}
+#loader.on{opacity:1}
+.spin{width:40px;height:40px;border:4px solid rgba(255,255,255,.2);border-top-color:#f5b301;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* D3X Sports Text Watermark */
+#wm{
+  position:absolute;
+  z-index:5;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  opacity:0.65;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  transition:opacity .25s, bottom .25s, right .25s;
+  bottom: 20px;
+  right: 20px;
+}
+.wm-text {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.wm-text .d3x { color: #ffffff; }
+.wm-text .sports { color: #f5b301; }
+/* Move watermark up when controls are active so they don't overlap */
+.controls-visible #wm {
+  bottom: 65px;
+}
+</style>
+</head>
+<body>
+<div class="shaka-video-container" id="pc">
+  <!-- Video element -->
+  <video id="v" autoplay playsinline muted preload="metadata"></video>
+
+  <!-- Watermark -->
+  <div id="wm">
+    <div class="wm-text"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div id="loader"><div class="spin"></div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/shaka-player.ui.min.js"></script>
+<script>
+/* =======================================================
+   >>> TEST SWITCH <<<
+   Set TEST_MODE = true  -> plays a FREE public test video (no DRM)
+                            to confirm the D3X player itself works.
+   Set TEST_MODE = false -> plays the real D3X Sports live stream.
+======================================================= */
+const TEST_MODE = false;
+
+/* =======================================================
+   STREAM AND DRM CONFIGURATION (real D3X Sports feed)
+======================================================= */
+const REAL_STREAM_URL = "https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/w0rehjjrwe/out/v1/69a2a7041395406b970598f61680e7cf/cenc.mpd";
+const REAL_KEY_ID = "14eeabf30c14b7fbf3008c03099ce011";
+const REAL_KEY    = "17d2ac8dbc5429bd70af3433aa12158d";
+
+/* Public test asset (Google "Angel One" DASH sample - no DRM) */
+const TEST_STREAM_URL = "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
+
+/* Active values chosen by the switch above */
+const STREAM_URL = TEST_MODE ? TEST_STREAM_URL : REAL_STREAM_URL;
+const KEY_ID     = TEST_MODE ? "" : REAL_KEY_ID;
+const KEY        = TEST_MODE ? "" : REAL_KEY;
+/* ======================================================= */
+
+function onPlayerErrorEvent(event) {
+  onPlayerError(event.detail);
+}
+function onPlayerError(error) {
+  let errorMsg = `Error code: ${error.code}`;
+  if (error.category === shaka.util.Error.Category.NETWORK) {
+    errorMsg += ` (Network Error).`;
+  } else if (error.category === shaka.util.Error.Category.DRM) {
+    errorMsg += ` (DRM Error - Did you forget to add the decryption key?).`;
+  } else if (error.category === shaka.util.Error.Category.MANIFEST) {
+    errorMsg += ` (Manifest Error).`;
+  }
+  if (error.data && error.data.length > 0) {
+    errorMsg += ` | Details: ${error.data.join(', ')}`;
+  }
+  console.error(`CRITICAL ERROR: ${errorMsg}`);
+
+  if (error.code === 6001 || error.code === 6013) {
+      alert("DRM Error: This stream is encrypted. You must provide the correct Decryption Key in the HTML code.");
+  }
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  shaka.polyfill.installAll();
+  if (!shaka.Player.isBrowserSupported()) {
+    console.error('Browser not supported!');
+    return;
+  }
+  const videoEl = document.getElementById('v');
+  const container = document.getElementById('pc');
+  const loader = document.getElementById('loader');
+  const player = new shaka.Player();
+  await player.attach(videoEl);
+  const ui = new shaka.ui.Overlay(player, container, videoEl);
+  ui.configure({
+    controlPanelElements: [
+      'play_pause', 'mute', 'volume', 'time_and_duration',
+      'spacer', 'picture_in_picture', 'quality', 'fullscreen'
+    ],
+    seekBarColors: { base: 'rgba(255,255,255,0.3)', buffered: 'rgba(255,255,255,0.6)', played: '#f5b301' },
+    fadeDelay: 3,
+    addBigPlayButton: true,
+  });
+  player.addEventListener('error', onPlayerErrorEvent);
+  player.addEventListener('buffering', (e) => {
+    loader.classList.toggle('on', e.buffering);
+  });
+  const controlsContainer = container.querySelector('.shaka-controls-container');
+  if (controlsContainer) {
+    const observer = new MutationObserver(() => {
+      container.classList.toggle('controls-visible', controlsContainer.getAttribute('shown') !== null);
+    });
+    observer.observe(controlsContainer, { attributes: true, attributeFilter: ['shown'] });
+  }
+  const playerConfig = {
+    abr: {
+      enabled: true,
+      defaultBandwidthEstimate: 10000000,
+    },
+    manifest: {
+      defaultPresentationDelay: 4,
+      dash: { ignoreSuggestedPresentationDelay: true, ignoreMinBufferTime: true, autoCorrectDrift: true }
+    },
+    streaming: {
+      bufferingGoal: 10,
+      rebufferingGoal: 2,
+      bufferBehind: 15,
+      lowLatencyMode: true,
+      jumpLargeGaps: true,
+      retryParameters: {
+        maxAttempts: 5,
+        baseDelay: 1000,
+        timeout: 20000
+      }
+    }
+  };
+  // Apply DRM Keys (only when not in test mode)
+  if (KEY_ID && KEY) {
+    playerConfig.drm = {
+      clearKeys: {
+        [KEY_ID]: KEY
+      }
+    };
+  }
+  player.configure(playerConfig);
+  loader.classList.add('on');
+  try {
+    await player.load(STREAM_URL);
+    loader.classList.remove('on');
+
+    if (player.isLive()) {
+      videoEl.currentTime = player.seekRange().end;
+    }
+    try {
+      await videoEl.play();
+    } catch (e) {
+      console.warn('Autoplay prevented by browser:', e);
+    }
+  } catch (e) {
+    onPlayerErrorEvent({detail: e});
+    loader.classList.remove('on');
+  }
+});
+</script>
+</body>
+</html>

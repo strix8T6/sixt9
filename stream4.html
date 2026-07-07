@@ -56,7 +56,6 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 .wm-logo .sports{color:#f5b301;margin-left:.12em}
 .wm-url{font-family:'Kanit','Segoe UI',sans-serif;font-weight:600;font-style:italic;font-size:10.5px;letter-spacing:1.5px;color:#fff;opacity:.9;white-space:nowrap;text-transform:lowercase}
 .controls-visible #wm{bottom:62px;opacity:.4}
-/* On iOS native controls, keep watermark clear of the bottom bar */
 body.ios #wm{bottom:76px}
 @media (max-width:600px){
   .wm-logo{font-size:16px}
@@ -67,22 +66,16 @@ body.ios #wm{bottom:76px}
 </head>
 <body>
 <div class="shaka-video-container" id="pc">
-  <!-- Video -->
   <video id="v" autoplay playsinline muted preload="auto" webkit-playsinline x5-playsinline></video>
-  <!-- LIVE badge -->
   <div id="live" title="Jump to live"><span class="dot"></span><span>LIVE</span></div>
-  <!-- Watermark -->
   <div id="wm">
     <div class="wm-logo"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
     <div class="wm-url">www.d3xsports.live</div>
   </div>
-  <!-- Tap to play (shown when autoplay is blocked) -->
   <button id="tapPlay" aria-label="Play">
     <span class="btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
   </button>
-  <!-- Loading spinner -->
   <div id="loader"><div class="spin"></div><div id="loaderTxt">Loading stream…</div></div>
-  <!-- Status / error overlay -->
   <div id="status">
     <h2 id="statusTitle">Connection lost</h2>
     <p id="statusMsg">We're trying to reconnect to the stream.</p>
@@ -95,25 +88,24 @@ body.ios #wm{bottom:76px}
    STREAM CONFIGURATION  (HLS — works on Android, PC, iPhone)
 ======================================================= */
 const STREAM_URL = "https://api.zlive.st/p/f6a5d0cdf6543a76/index.m3u8";
-/* ---------- Tunables ---------- */
-const BUFFERING_GOAL       = 30;
-const REBUFFERING_GOAL     = 4;
-const BUFFER_BEHIND        = 30;
-const LIVE_EDGE_TOLERANCE  = 20;
-const MAX_AUTO_RELOADS     = 6;
+/* ---------- Tunables optimized for 4K60 HLS ---------- */
+const BUFFERING_GOAL       = 45;
+const REBUFFERING_GOAL     = 12;
+const BUFFER_BEHIND        = 12;
+const LIVE_EDGE_TOLERANCE  = 25;
+const MAX_AUTO_RELOADS     = 8;
 /* ======================================================= */
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let player, videoEl, container, loader, loaderTxt, statusEl, statusTitle, statusMsg, statusBtn, liveBadge, tapPlay;
 let autoReloads = 0, reloadTimer = null, watchdogTimer = null;
 let usingNative = false;
-/* ---------- Error handling ---------- */
+
 function onPlayerErrorEvent(event){ handleError(event.detail); }
 function handleError(error){
   console.error("PLAYER ERROR:", error && error.code, error);
   scheduleAutoReload();
 }
-/* ---------- Auto-reconnect with backoff ---------- */
 function scheduleAutoReload(){
   if (reloadTimer) return;
   if (autoReloads >= MAX_AUTO_RELOADS){
@@ -134,7 +126,6 @@ function showStatus(title, msg, btnText){
   statusEl.classList.add("on");
 }
 function hideStatus(){ statusEl.classList.remove("on"); }
-/* ---------- Autoplay-blocked handling ---------- */
 function showTapPlay(){ loader.classList.remove("on"); tapPlay.classList.add("on"); }
 function hideTapPlay(){ tapPlay.classList.remove("on"); }
 async function tryPlay(){
@@ -143,10 +134,9 @@ async function tryPlay(){
     hideTapPlay();
   }catch(e){
     console.warn("Autoplay prevented:", e);
-    showTapPlay();   // show big play button instead of a black screen
+    showTapPlay();
   }
 }
-/* ---------- Live-edge helpers ---------- */
 function getSeekEnd(){
   if (usingNative){
     try { return videoEl.seekable.length ? videoEl.seekable.end(videoEl.seekable.length - 1) : videoEl.currentTime; }
@@ -161,7 +151,9 @@ function isLiveStream(){
 function seekToLive(){
   try{
     if (isLiveStream()){
-      videoEl.currentTime = getSeekEnd();
+      const rangeEnd = getSeekEnd();
+      const target = Math.max(0.5, rangeEnd - 3);
+      videoEl.currentTime = target;
       videoEl.play().catch(()=>{});
     }
   }catch(e){}
@@ -172,21 +164,35 @@ function updateLiveBadge(){
   const behind = getSeekEnd() - videoEl.currentTime;
   liveBadge.classList.toggle("behind", behind > LIVE_EDGE_TOLERANCE);
 }
-/* ---------- Stall watchdog ---------- */
 function startWatchdog(){
-  let lastTime = -1, stalls = 0;
+  let lastTime = -1, stalls = 0, inStall = false;
   clearInterval(watchdogTimer);
   watchdogTimer = setInterval(() => {
     updateLiveBadge();
     if (videoEl.paused || videoEl.ended || videoEl.readyState < 2){ lastTime = videoEl.currentTime; return; }
     if (Math.abs(videoEl.currentTime - lastTime) < 0.01){
       stalls++;
-      if (stalls >= 4){ seekToLive(); stalls = 0; }
+      if (stalls >= 5 && !inStall){
+        inStall = true;
+        console.warn("Watchdog: stall detected, reducing quality and waiting for buffer.");
+        try{
+          if (!usingNative){
+            const variants = player.getVariantTracks();
+            const current = variants.find(t => t.active);
+            if (current && current.bandwidth > 6000000 && variants.length > 1){
+              const lower = variants.filter(t => t.bandwidth < current.bandwidth).sort((a,b)=>b.bandwidth-a.bandwidth)[0];
+              if (lower) player.selectVariantTrack(lower, true);
+            }
+          }
+        }catch(e){}
+        videoEl.pause();
+        setTimeout(() => { videoEl.play().catch(()=>{}); inStall = false; }, 1800);
+        stalls = 0;
+      }
     } else { stalls = 0; }
     lastTime = videoEl.currentTime;
   }, 1000);
 }
-/* ---------- Keyboard shortcuts ---------- */
 function bindKeys(){
   document.addEventListener("keydown", (e) => {
     switch (e.key.toLowerCase()){
@@ -199,18 +205,17 @@ function bindKeys(){
     }
   });
 }
-/* ---------- Native iOS HLS path ---------- */
 function loadNativeHls(){
   usingNative = true;
   document.body.classList.add("ios");
-  videoEl.controls = true;                 // native Safari controls (play, fullscreen, AirPlay)
+  videoEl.controls = true;
   loaderTxt.textContent = "Loading stream…";
   loader.classList.add("on");
   videoEl.src = STREAM_URL;
   videoEl.addEventListener("canplay", () => {
     loader.classList.remove("on");
     hideStatus();
-    tryPlay();                             // if blocked -> big play button appears
+    tryPlay();
   }, { once:true });
   videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideTapPlay(); hideStatus(); });
   videoEl.addEventListener("error", () => scheduleAutoReload());
@@ -223,7 +228,6 @@ function reloadNativeHls(){
   videoEl.load();
   videoEl.addEventListener("canplay", () => { loader.classList.remove("on"); tryPlay(); }, { once:true });
 }
-/* ---------- Shaka load / reload ---------- */
 async function loadStream(){
   if (usingNative){ reloadNativeHls(); return; }
   hideStatus();
@@ -239,7 +243,6 @@ async function loadStream(){
     updateLiveBadge();
   }catch(e){ handleError(e); }
 }
-/* ---------- Boot ---------- */
 document.addEventListener("DOMContentLoaded", async () => {
   videoEl     = document.getElementById("v");
   container   = document.getElementById("pc");
@@ -254,12 +257,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   liveBadge.addEventListener("click", seekToLive);
   tapPlay.addEventListener("click", () => {
-    videoEl.muted = false;                 // user gesture -> we can unmute too
+    videoEl.muted = false;
     videoEl.play().then(hideTapPlay).catch(()=>{ videoEl.muted = true; videoEl.play().then(hideTapPlay).catch(()=>{}); });
   });
   container.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  /* ===== iPhone / iPad: native HLS ===== */
   if (IS_IOS && videoEl.canPlayType('application/vnd.apple.mpegurl')){
     statusBtn.addEventListener("click", () => { autoReloads = 0; reloadNativeHls(); });
     startWatchdog();
@@ -267,7 +269,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  /* ===== Android / PC: Shaka Player ===== */
   shaka.polyfill.installAll();
   if (!shaka.Player.isBrowserSupported()){
     document.body.innerHTML = "<div style='color:#fff;padding:40px;font:16px sans-serif'>Your browser is not supported. Please use an up-to-date Chrome, Edge or Firefox.</div>";
@@ -288,12 +289,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     tapSeekDistance: 10,
   });
   player.configure({
-    abr: { enabled:true, defaultBandwidthEstimate:8000000, switchInterval:8, restrictToElementSize:true },
+    abr: {
+      enabled:true,
+      defaultBandwidthEstimate:35000000,
+      switchInterval:4,
+      bandwidthDowngradeTarget:0.85,
+      bandwidthUpgradeTarget:0.70,
+      restrictToElementSize:false,
+    },
     streaming: {
-      bufferingGoal:BUFFERING_GOAL, rebufferingGoal:REBUFFERING_GOAL, bufferBehind:BUFFER_BEHIND,
-      lowLatencyMode:false, jumpLargeGaps:true, gapDetectionThreshold:0.5,
-      stallEnabled:true, stallThreshold:1, stallSkip:0.1,
-      retryParameters:{ maxAttempts:8, baseDelay:500, backoffFactor:1.6, fuzzFactor:0.5, timeout:30000 }
+      bufferingGoal:BUFFERING_GOAL,
+      rebufferingGoal:REBUFFERING_GOAL,
+      bufferBehind:BUFFER_BEHIND,
+      lowLatencyMode:false,
+      jumpLargeGaps:true,
+      gapDetectionThreshold:0.5,
+      stallEnabled:true,
+      stallThreshold:2,
+      stallSkip:0.5,
+      retryParameters:{ maxAttempts:10, baseDelay:400, backoffFactor:1.5, fuzzFactor:0.4, timeout:30000 }
     }
   });
   player.addEventListener("error", onPlayerErrorEvent);

@@ -8,9 +8,10 @@
 
 <!-- Shaka Player 5.1.8 (best DASH + DRM support) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/controls.css">
-<!-- Orbitron font for the watermark -->
+<!-- Kanit font for the watermark (bold italic sports style) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,600;0,800;1,600;1,800&display=swap" rel="stylesheet">
 
 <style>
 /* ---------- Base ---------- */
@@ -56,27 +57,43 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
   z-index:5;
   pointer-events:none;
   display:flex;
+  flex-direction:column;
   align-items:center;
-  opacity:.42;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.85));
+  gap:1px;
+  opacity:.55;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.9));
   transition:opacity .25s, bottom .25s;
 }
-.wm-text{
-  font-family:'Orbitron','Segoe UI',sans-serif;
+.wm-logo{
+  font-family:'Kanit','Segoe UI',sans-serif;
   font-weight:800;
-  font-size:16px;
-  letter-spacing:1.5px;
+  font-style:italic;
+  font-size:22px;
+  line-height:1;
+  letter-spacing:.5px;
   white-space:nowrap;
   text-transform:uppercase;
 }
-.wm-text .d3x{color:#fff}
-.wm-text .sports{color:#f5b301}
+.wm-logo .d3x{color:#fff}
+.wm-logo .sports{color:#f5b301;margin-left:.12em}
+.wm-url{
+  font-family:'Kanit','Segoe UI',sans-serif;
+  font-weight:600;
+  font-style:italic;
+  font-size:10.5px;
+  letter-spacing:1.5px;
+  color:#fff;
+  opacity:.9;
+  white-space:nowrap;
+  text-transform:lowercase;
+}
 /* Lift watermark above the control bar when controls are visible */
-.controls-visible #wm{bottom:58px;opacity:.32}
+.controls-visible #wm{bottom:62px;opacity:.4}
 
 /* Small screens: shrink watermark */
 @media (max-width:600px){
-  .wm-text{font-size:13px;letter-spacing:1px}
+  .wm-logo{font-size:16px}
+  .wm-url{font-size:8.5px;letter-spacing:1px}
   #live span{font-size:11px}
 }
 </style>
@@ -90,7 +107,10 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
   <div id="live" title="Jump to live"><span class="dot"></span><span>LIVE</span></div>
 
   <!-- Watermark -->
-  <div id="wm"><div class="wm-text"><span class="d3x">D3X</span><span class="sports">Sports</span></div></div>
+  <div id="wm">
+    <div class="wm-logo"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
+    <div class="wm-url">www.d3xsports.live</div>
+  </div>
 
   <!-- Loading spinner -->
   <div id="loader"><div class="spin"></div><div id="loaderTxt">Loading stream…</div></div>
@@ -107,8 +127,7 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 <script>
 /* =======================================================
    >>> TEST SWITCH <
-   TEST_MODE = true  -> free public DASH sample (no DRM) to
-                        confirm the player itself works.
+   TEST_MODE = true  -> free public DASH sample (no DRM)
    TEST_MODE = false -> real D3X Sports live stream.
 ======================================================= */
 const TEST_MODE = false;
@@ -152,26 +171,22 @@ function onPlayerErrorEvent(event){ handleError(event.detail); }
 
 function handleError(error){
   console.error("PLAYER ERROR:", describeError(error), error);
-
-  // DRM key problem — no point auto-reloading, tell the user clearly.
   if (error.code === 6001 || error.code === 6007 || error.code === 6013){
     showStatus("Stream is encrypted", "The decryption key is missing or incorrect. Please check the player configuration.", "Retry");
     return;
   }
-
-  // Everything else (network/manifest/segment) -> auto-reconnect.
   scheduleAutoReload();
 }
 
 /* ---------- Auto-reconnect with backoff ---------- */
 function scheduleAutoReload(){
-  if (reloadTimer) return; // already scheduled
+  if (reloadTimer) return;
   if (autoReloads >= MAX_AUTO_RELOADS){
     showStatus("Can't reach the stream", "The stream may be offline or your connection dropped. Tap reload to try again.", "Reload");
     return;
   }
   autoReloads++;
-  const delay = Math.min(1000 * Math.pow(1.6, autoReloads), 8000); // capped backoff
+  const delay = Math.min(1000 * Math.pow(1.6, autoReloads), 8000);
   loaderTxt.textContent = `Reconnecting… (${autoReloads}/${MAX_AUTO_RELOADS})`;
   loader.classList.add("on");
   reloadTimer = setTimeout(async () => {
@@ -193,11 +208,10 @@ function hideStatus(){ statusEl.classList.remove("on"); }
 function seekToLive(){
   try{
     if (player.isLive()){
-      const range = player.seekRange();
-      videoEl.currentTime = range.end;      // Shaka clamps to the safe live edge internally
+      videoEl.currentTime = player.seekRange().end;
       videoEl.play().catch(()=>{});
     }
-  }catch(e){ /* ignore */ }
+  }catch(e){}
 }
 
 function updateLiveBadge(){
@@ -209,7 +223,7 @@ function updateLiveBadge(){
   }catch(e){}
 }
 
-/* ---------- Stall watchdog: detect a frozen playhead and recover ---------- */
+/* ---------- Stall watchdog ---------- */
 function startWatchdog(){
   let lastTime = -1, stalls = 0;
   clearInterval(watchdogTimer);
@@ -218,14 +232,12 @@ function startWatchdog(){
     if (videoEl.paused || videoEl.ended || videoEl.readyState < 2) { lastTime = videoEl.currentTime; return; }
     if (Math.abs(videoEl.currentTime - lastTime) < 0.01){
       stalls++;
-      if (stalls >= 4){          // ~4s frozen while it should be playing
+      if (stalls >= 4){
         console.warn("Watchdog: playback frozen, jumping to live edge.");
         seekToLive();
         stalls = 0;
       }
-    } else {
-      stalls = 0;
-    }
+    } else { stalls = 0; }
     lastTime = videoEl.currentTime;
   }, 1000);
 }
@@ -234,27 +246,12 @@ function startWatchdog(){
 function bindKeys(){
   document.addEventListener("keydown", (e) => {
     switch (e.key.toLowerCase()){
-      case " ": case "k":
-        e.preventDefault();
-        videoEl.paused ? videoEl.play() : videoEl.pause();
-        break;
-      case "f":
-        document.fullscreenElement ? document.exitFullscreen() : container.requestFullscreen();
-        break;
-      case "m":
-        videoEl.muted = !videoEl.muted;
-        break;
-      case "l":                          // jump to live
-        seekToLive();
-        break;
-      case "arrowup":
-        e.preventDefault();
-        videoEl.volume = Math.min(1, videoEl.volume + 0.1);
-        break;
-      case "arrowdown":
-        e.preventDefault();
-        videoEl.volume = Math.max(0, videoEl.volume - 0.1);
-        break;
+      case " ": case "k": e.preventDefault(); videoEl.paused ? videoEl.play() : videoEl.pause(); break;
+      case "f": document.fullscreenElement ? document.exitFullscreen() : container.requestFullscreen(); break;
+      case "m": videoEl.muted = !videoEl.muted; break;
+      case "l": seekToLive(); break;
+      case "arrowup":   e.preventDefault(); videoEl.volume = Math.min(1, videoEl.volume + 0.1); break;
+      case "arrowdown": e.preventDefault(); videoEl.volume = Math.max(0, videoEl.volume - 0.1); break;
     }
   });
 }
@@ -266,7 +263,7 @@ async function loadStream(){
   loader.classList.add("on");
   try{
     await player.load(STREAM_URL);
-    autoReloads = 0;               // success resets the counter
+    autoReloads = 0;
     loader.classList.remove("on");
     hideStatus();
     if (player.isLive()) seekToLive();
@@ -311,28 +308,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     tapSeekDistance: 10,
   });
 
-  /* ---------- Player configuration (the buffering fix lives here) ---------- */
+  /* ---------- Player configuration ---------- */
   const playerConfig = {
     abr: {
       enabled: true,
-      defaultBandwidthEstimate: 4000000,   // start at a safe 4 Mbps, ABR climbs from there
+      defaultBandwidthEstimate: 8000000,   // 8 Mbps start -> reaches 1080p fast on good connections
       switchInterval: 8,
-      restrictToElementSize: true,         // don't fetch 1080p into a small window
+      restrictToElementSize: true,         // fullscreen on a 1080p+ screen still serves 1080p; saves data on phones
     },
     manifest: {
       defaultPresentationDelay: PRESENTATION_DELAY,
-      dash: {
-        ignoreSuggestedPresentationDelay: true,
-        ignoreMinBufferTime: false,
-        autoCorrectDrift: true
-      },
+      dash: { ignoreSuggestedPresentationDelay: true, ignoreMinBufferTime: false, autoCorrectDrift: true },
       retryParameters: { maxAttempts: 6, baseDelay: 600, backoffFactor: 1.6, timeout: 30000 }
     },
     streaming: {
       bufferingGoal:   BUFFERING_GOAL,
       rebufferingGoal: REBUFFERING_GOAL,
       bufferBehind:    BUFFER_BEHIND,
-      lowLatencyMode:  false,              // *** was the main cause of your rebuffering ***
+      lowLatencyMode:  false,              // main buffering fix
       jumpLargeGaps:   true,
       gapDetectionThreshold: 0.5,
       stallEnabled:    true,
@@ -353,11 +346,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     loader.classList.toggle("on", e.buffering);
     if (e.buffering) loaderTxt.textContent = "Buffering…";
   });
-
   videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideStatus(); });
   videoEl.addEventListener("waiting", () => { loader.classList.add("on"); });
 
-  /* Track controls visibility so watermark + LIVE badge lift above the bar */
   const controlsContainer = container.querySelector(".shaka-controls-container");
   if (controlsContainer){
     new MutationObserver(() => {
@@ -367,7 +358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   liveBadge.addEventListener("click", seekToLive);
   statusBtn.addEventListener("click", () => { autoReloads = 0; loadStream(); });
-  container.addEventListener("contextmenu", (e) => e.preventDefault());  // block right-click menu
+  container.addEventListener("contextmenu", (e) => e.preventDefault());
 
   bindKeys();
   startWatchdog();

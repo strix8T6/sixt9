@@ -90,10 +90,10 @@ body.ios #wm{bottom:76px}
    STREAM CONFIGURATION  (HLS — works on Android, PC, iPhone)
 ======================================================= */
 const STREAM_URL = "https://mxonlive.com/stream/2076972";
-/* ---------- Tunables optimized for 8K60 heavy traffic HLS ---------- */
-const BUFFERING_GOAL       = 90;
-const REBUFFERING_GOAL     = 30;
-const BUFFER_BEHIND        = 30;
+/* ---------- Tunables: Fast start + heavy background buffer ---------- */
+const BUFFERING_GOAL       = 60;  /* target buffer downloaded in background */
+const REBUFFERING_GOAL     = 2;   /* only need 2s before playback starts = fast! */
+const BUFFER_BEHIND        = 20;
 const LIVE_EDGE_TOLERANCE  = 30;
 const MAX_AUTO_RELOADS     = 12;
 /* ======================================================= */

@@ -37,13 +37,15 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 #status p{color:#bbb;font-size:13px;max-width:420px;line-height:1.5}
 #status button{background:#f5b301;color:#111;border:0;padding:11px 26px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.5px}
 #status button:hover{background:#ffc21f}
-/* ---------- LIVE badge ---------- */
-#live{position:absolute;top:16px;left:16px;z-index:6;display:none;align-items:center;gap:7px;background:rgba(0,0,0,.55);padding:6px 12px;border-radius:6px;cursor:pointer;transition:opacity .25s, top .25s}
+/* ---------- LIVE badge (bottom-right near controls) ---------- */
+#live{position:absolute;bottom:62px;right:16px;z-index:6;display:none;align-items:center;gap:7px;background:rgba(0,0,0,.65);padding:7px 14px;border-radius:8px;cursor:pointer;transition:opacity .25s,bottom .25s;backdrop-filter:blur(8px)}
 #live.show{display:flex}
-#live .dot{width:9px;height:9px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.7);animation:pulse 1.8s infinite}
+#live .dot{width:10px;height:10px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.7);animation:pulse 1.5s infinite}
 #live.behind .dot{background:#888;animation:none}
-#live span{color:#fff;font-size:12px;font-weight:700;letter-spacing:1px}
+#live span{color:#fff;font-size:13px;font-weight:700;letter-spacing:1.5px}
 #live.behind span{color:#ccc}
+.controls-visible #live{bottom:72px}
+body.ios #live{bottom:80px}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.7)}70%{box-shadow:0 0 0 7px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
 /* ---------- D3X Sports watermark (lower-middle) ---------- */
 #wm{
@@ -88,12 +90,12 @@ body.ios #wm{bottom:76px}
    STREAM CONFIGURATION  (HLS — works on Android, PC, iPhone)
 ======================================================= */
 const STREAM_URL = "https://hls.live123.fans/live/4459808.m3u8";
-/* ---------- Tunables optimized for 4K60 HLS ---------- */
-const BUFFERING_GOAL       = 45;
-const REBUFFERING_GOAL     = 12;
-const BUFFER_BEHIND        = 12;
-const LIVE_EDGE_TOLERANCE  = 25;
-const MAX_AUTO_RELOADS     = 8;
+/* ---------- Tunables optimized for 8K60 heavy traffic HLS ---------- */
+const BUFFERING_GOAL       = 90;
+const REBUFFERING_GOAL     = 30;
+const BUFFER_BEHIND        = 30;
+const LIVE_EDGE_TOLERANCE  = 30;
+const MAX_AUTO_RELOADS     = 12;
 /* ======================================================= */
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -291,7 +293,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   player.configure({
     abr: {
       enabled:true,
-      defaultBandwidthEstimate:35000000,
+      defaultBandwidthEstimate:50000000,
       switchInterval:4,
       bandwidthDowngradeTarget:0.85,
       bandwidthUpgradeTarget:0.70,
@@ -313,7 +315,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   player.addEventListener("error", onPlayerErrorEvent);
   player.addEventListener("buffering", (e) => {
     loader.classList.toggle("on", e.buffering);
-    if (e.buffering) loaderTxt.textContent = "Buffering…";
+    if (e.buffering) loaderTxt.textContent = "Connecting to server…";
   });
   videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideTapPlay(); hideStatus(); });
   videoEl.addEventListener("waiting", () => { loader.classList.add("on"); });

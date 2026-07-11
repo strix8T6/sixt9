@@ -60,7 +60,7 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 </head>
 <body>
 <div class="shaka-video-container" id="pc">
-  <video id="v" autoplay playsinline muted preload="auto"></video>
+  <video id="v" autoplay playsinline muted preload="metadata" controls></video>
   <div id="live" title="Jump to live"><span class="dot"></span><span>LIVE</span></div>
   <div id="wm">
     <div class="wm-logo"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
@@ -76,20 +76,10 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 
 <script src="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/shaka-player.ui.min.js"></script>
 <script>
-const TEST_MODE = false;
-
-  
+/* STREAM AND DRM CONFIGURATION */
 const STREAM_URL = "https://otte.cache.aiv-cdn.net/gru-nitro/live/clients/dash/enc/iayg0kyrof/out/v1/91dc04907f56415b897faccfa9d252da/cenc.mpd";
-
-// 🔓 Decryption keys extracted from source:
-const KEY_ID = "1223d5105392cabf1bb9c2c1fdf6539a";
-const KEY = "340b409f4b8f78a343e0363a7938df38";
-  
-const TEST_STREAM_URL = "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd";
-
-const STREAM_URL = TEST_MODE ? TEST_STREAM_URL : REAL_STREAM_URL;
-const KEY_ID     = TEST_MODE ? "" : REAL_KEY_ID;
-const KEY        = TEST_MODE ? "" : REAL_KEY;
+const KEY_ID     = "1223d5105392cabf1bb9c2c1fdf6539a";
+const KEY        = "340b409f4b8f78a343e0363a7938df38";
 
 /* Tunables: Fast start + heavy background buffer */
 const PRESENTATION_DELAY   = 10;
@@ -264,21 +254,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const playerConfig = {
     abr: {
       enabled: true,
-      defaultBandwidthEstimate: 50000000,
-      switchInterval: 4,
-      bandwidthDowngradeTarget: 0.85,
-      bandwidthUpgradeTarget: 0.70,
-      restrictToElementSize: false,
+      defaultBandwidthEstimate: 10000000,
     },
     manifest: {
-      defaultPresentationDelay: PRESENTATION_DELAY,
-      dash: { ignoreSuggestedPresentationDelay: true, ignoreMinBufferTime: false, autoCorrectDrift: true },
+      defaultPresentationDelay: 15,
+      dash: { ignoreSuggestedPresentationDelay: false, ignoreMinBufferTime: false, autoCorrectDrift: true },
       retryParameters: { maxAttempts: 8, baseDelay: 500, backoffFactor: 1.5, timeout: 30000 }
     },
     streaming: {
-      bufferingGoal:   BUFFERING_GOAL,
-      rebufferingGoal: REBUFFERING_GOAL,
-      bufferBehind:    BUFFER_BEHIND,
+      bufferingGoal:   15,
+      rebufferingGoal: 2,
+      bufferBehind:    15,
       lowLatencyMode:  false,
       jumpLargeGaps:   true,
       gapDetectionThreshold: 0.5,
@@ -286,7 +272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       stallThreshold:  2,
       stallSkip:       0.5,
       startAtSegmentBoundary: false,
-      retryParameters: { maxAttempts: 10, baseDelay: 400, backoffFactor: 1.5, fuzzFactor: 0.4, timeout: 30000 }
+      retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 1.5, fuzzFactor: 0.4, timeout: 20000 }
     }
   };
 

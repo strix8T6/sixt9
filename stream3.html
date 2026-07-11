@@ -60,7 +60,7 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 </head>
 <body>
 <div class="shaka-video-container" id="pc">
-  <video id="v" autoplay playsinline muted preload="metadata" controls></video>
+  <video id="v" autoplay playsinline muted preload="none"></video>
   <div id="live" title="Jump to live"><span class="dot"></span><span>LIVE</span></div>
   <div id="wm">
     <div class="wm-logo"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
@@ -254,25 +254,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   const playerConfig = {
     abr: {
       enabled: true,
-      defaultBandwidthEstimate: 10000000,
+      defaultBandwidthEstimate: 12000000,
+      switchInterval: 8,
+      bandwidthDowngradeTarget: 0.7,
+      bandwidthUpgradeTarget: 0.85,
+      restrictToElementSize: false,
+      advanced: {
+        minTotalBytes: 1000000,
+        minBytes: 256000,
+        fastHalfLife: 2,
+        slowHalfLife: 5
+      }
     },
     manifest: {
-      defaultPresentationDelay: 15,
-      dash: { ignoreSuggestedPresentationDelay: false, ignoreMinBufferTime: false, autoCorrectDrift: true },
-      retryParameters: { maxAttempts: 8, baseDelay: 500, backoffFactor: 1.5, timeout: 30000 }
+      defaultPresentationDelay: 12,
+      dash: { ignoreSuggestedPresentationDelay: true, ignoreMinBufferTime: true, autoCorrectDrift: true },
+      retryParameters: { maxAttempts: 6, baseDelay: 500, backoffFactor: 1.3, fuzzFactor: 0.3, timeout: 20000 }
     },
     streaming: {
-      bufferingGoal:   15,
+      bufferingGoal:   30,
       rebufferingGoal: 2,
-      bufferBehind:    15,
+      bufferBehind:    10,
       lowLatencyMode:  false,
       jumpLargeGaps:   true,
       gapDetectionThreshold: 0.5,
       stallEnabled:    true,
-      stallThreshold:  2,
-      stallSkip:       0.5,
-      startAtSegmentBoundary: false,
-      retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 1.5, fuzzFactor: 0.4, timeout: 20000 }
+      stallThreshold:  1,
+      stallSkip:       0.2,
+      startAtSegmentBoundary: true,
+      retryParameters: { maxAttempts: 8, baseDelay: 300, backoffFactor: 1.3, fuzzFactor: 0.3, timeout: 20000 }
     }
   };
 

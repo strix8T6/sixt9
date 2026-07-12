@@ -4,40 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="referrer" content="no-referrer">
-<title>D3X Sports // Stream 3</title>
-<!-- Shaka Player 5.1.8 (DASH + HLS) -->
+<title>D3X Sports // Stream 2</title>
+
+<!-- Shaka Player 5.1.8 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/controls.css">
-<!-- Kanit font for the watermark -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,600;0,800;1,600;1,800&display=swap" rel="stylesheet">
+
 <style>
-/* ---------- Base ---------- */
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none}
 .shaka-video-container{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
 video{width:100%;height:100%;object-fit:contain;background:#000}
+
 .shaka-spinner-container,.shaka-spinner,.shaka-spinner-svg{display:none!important}
 .shaka-controls-container button{color:#fff!important}
-/* ---------- Custom loading spinner ---------- */
+
 #loader{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s}
 #loader.on{opacity:1}
 .spin{width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top-color:#f5b301;border-radius:50%;animation:sp .8s linear infinite}
 #loaderTxt{color:#fff;font-size:13px;letter-spacing:.5px;opacity:.85}
 @keyframes sp{to{transform:rotate(360deg)}}
-/* ---------- Tap-to-play overlay (iOS autoplay blocked) ---------- */
-#tapPlay{position:absolute;inset:0;z-index:11;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border:0;cursor:pointer}
-#tapPlay.on{display:flex}
-#tapPlay .btn{width:84px;height:84px;border-radius:50%;background:rgba(245,179,1,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.6)}
-#tapPlay .btn svg{width:38px;height:38px;fill:#111;margin-left:5px}
-/* ---------- Status / error overlay ---------- */
+
 #status{position:absolute;inset:0;background:rgba(0,0,0,.82);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:12;text-align:center;padding:24px}
 #status.on{display:flex}
 #status h2{color:#fff;font-size:18px;font-weight:600}
 #status p{color:#bbb;font-size:13px;max-width:420px;line-height:1.5}
 #status button{background:#f5b301;color:#111;border:0;padding:11px 26px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.5px}
 #status button:hover{background:#ffc21f}
-/* ---------- LIVE badge (bottom-right near controls) ---------- */
+
+/* LIVE badge (bottom-right near controls) */
 #live{position:absolute;bottom:62px;right:16px;z-index:6;display:none;align-items:center;gap:7px;background:rgba(0,0,0,.65);padding:7px 14px;border-radius:8px;cursor:pointer;transition:opacity .25s,bottom .25s;backdrop-filter:blur(8px)}
 #live.show{display:flex}
 #live .dot{width:10px;height:10px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.7);animation:pulse 1.5s infinite}
@@ -45,20 +42,15 @@ video{width:100%;height:100%;object-fit:contain;background:#000}
 #live span{color:#fff;font-size:13px;font-weight:700;letter-spacing:1.5px}
 #live.behind span{color:#ccc}
 .controls-visible #live{bottom:72px}
-body.ios #live{bottom:80px}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.7)}70%{box-shadow:0 0 0 7px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
-/* ---------- D3X Sports watermark (lower-middle) ---------- */
-#wm{
-  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
-  z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:1px;
-  opacity:.55;filter:drop-shadow(0 2px 5px rgba(0,0,0,.9));transition:opacity .25s, bottom .25s;
-}
+
+#wm{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:1px;opacity:.55;filter:drop-shadow(0 2px 5px rgba(0,0,0,.9));transition:opacity .25s, bottom .25s}
 .wm-logo{font-family:'Kanit','Segoe UI',sans-serif;font-weight:800;font-style:italic;font-size:22px;line-height:1;letter-spacing:.5px;white-space:nowrap;text-transform:uppercase}
 .wm-logo .d3x{color:#fff}
 .wm-logo .sports{color:#f5b301;margin-left:.12em}
 .wm-url{font-family:'Kanit','Segoe UI',sans-serif;font-weight:600;font-style:italic;font-size:10.5px;letter-spacing:1.5px;color:#fff;opacity:.9;white-space:nowrap;text-transform:lowercase}
 .controls-visible #wm{bottom:62px;opacity:.4}
-body.ios #wm{bottom:76px}
+
 @media (max-width:600px){
   .wm-logo{font-size:16px}
   .wm-url{font-size:8.5px;letter-spacing:1px}
@@ -68,15 +60,12 @@ body.ios #wm{bottom:76px}
 </head>
 <body>
 <div class="shaka-video-container" id="pc">
-  <video id="v" autoplay playsinline muted preload="auto" webkit-playsinline x5-playsinline></video>
+  <video id="v" autoplay playsinline muted preload="none"></video>
   <div id="live" title="Jump to live"><span class="dot"></span><span>LIVE</span></div>
   <div id="wm">
     <div class="wm-logo"><span class="d3x">D3X</span><span class="sports">Sports</span></div>
     <div class="wm-url">www.d3xsports.live</div>
   </div>
-  <button id="tapPlay" aria-label="Play">
-    <span class="btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-  </button>
   <div id="loader"><div class="spin"></div><div id="loaderTxt">Loading stream…</div></div>
   <div id="status">
     <h2 id="statusTitle">Connection lost</h2>
@@ -84,30 +73,48 @@ body.ios #wm{bottom:76px}
     <button id="statusBtn">Reload</button>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/shaka-player@5.1.8/dist/shaka-player.ui.min.js"></script>
 <script>
-/* =======================================================
-   STREAM CONFIGURATION  (HLS — works on Android, PC, iPhone)
-======================================================= */
-const STREAM_URL = "https://manifest-oci-us-ashburn-1-vop1.fastly.mux.com/OA9iwTrT701C8w01RDW74l00Zc8yzLHFhTMtVpslUuW01QyVaNRcNKk02nbPk5LABY2ZP3hB6OzIXndNIqmQIvFOeD52Mamd102u25RERLKdDTM34/rendition.m3u8?cdn=fastly&exclude_pdt=false&expires=1783890000&live=1&skid=default&signature=NmE1M2ZhMjBfOWExMGYzMWRmNmRkN2Y0MjYzNzc5ZDBmZTU3NWIyYjBmOGM2MDFmZjdlNDI3OWFjZTE2NDYzOTNlZjZlMzZkNA==";
-/* ---------- Tunables: Fast start + heavy background buffer ---------- */
+/* STREAM AND DRM CONFIGURATION */
+const STREAM_URL = "https://teleamazonasb.cdn.mdstrm.com/live-stream-mp/dfzu2jckcs3he/a5e7a2777ea24b8ca49b326b536f87b2/6a0cd90eb3852427fcded197/manifest.mpd";
+
+// 🔓 Decryption keys extracted from source:
+const KEY_ID = "aa78205160ef4b5c972d5e815a8fe6e4";
+const KEY = "338b545591e45469e71dae3a8fb8dbb0";
+/* Tunables: Fast start + heavy background buffer */
+const PRESENTATION_DELAY   = 10;
 const BUFFERING_GOAL       = 60;  /* target buffer downloaded in background */
 const REBUFFERING_GOAL     = 2;   /* only need 2s before playback starts = fast! */
 const BUFFER_BEHIND        = 20;
 const LIVE_EDGE_TOLERANCE  = 30;
 const MAX_AUTO_RELOADS     = 12;
-/* ======================================================= */
-const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-let player, videoEl, container, loader, loaderTxt, statusEl, statusTitle, statusMsg, statusBtn, liveBadge, tapPlay;
-let autoReloads = 0, reloadTimer = null, watchdogTimer = null;
-let usingNative = false;
+
+let player, videoEl, container, loader, loaderTxt, statusEl, statusTitle, statusMsg, statusBtn, liveBadge;
+let autoReloads = 0;
+let reloadTimer = null;
+let watchdogTimer = null;
+
+function describeError(error){
+  let msg = `Error code: ${error.code}`;
+  if (!error.category) return msg;
+  if (error.category === shaka.util.Error.Category.NETWORK)  msg += " (Network)";
+  else if (error.category === shaka.util.Error.Category.DRM) msg += " (DRM / decryption key)";
+  else if (error.category === shaka.util.Error.Category.MANIFEST) msg += " (Manifest)";
+  return msg;
+}
 
 function onPlayerErrorEvent(event){ handleError(event.detail); }
+
 function handleError(error){
-  console.error("PLAYER ERROR:", error && error.code, error);
+  console.error("PLAYER ERROR:", describeError(error), error);
+  if (error.code === 6001 || error.code === 6007 || error.code === 6013){
+    showStatus("Stream is encrypted", "The decryption key is missing or incorrect. Please check the player configuration.", "Retry");
+    return;
+  }
   scheduleAutoReload();
 }
+
 function scheduleAutoReload(){
   if (reloadTimer) return;
   if (autoReloads >= MAX_AUTO_RELOADS){
@@ -118,8 +125,12 @@ function scheduleAutoReload(){
   const delay = Math.min(1000 * Math.pow(1.6, autoReloads), 8000);
   loaderTxt.textContent = `Reconnecting… (${autoReloads}/${MAX_AUTO_RELOADS})`;
   loader.classList.add("on");
-  reloadTimer = setTimeout(async () => { reloadTimer = null; await loadStream(); }, delay);
+  reloadTimer = setTimeout(async () => {
+    reloadTimer = null;
+    await loadStream();
+  }, delay);
 }
+
 function showStatus(title, msg, btnText){
   loader.classList.remove("on");
   statusTitle.textContent = title;
@@ -128,44 +139,27 @@ function showStatus(title, msg, btnText){
   statusEl.classList.add("on");
 }
 function hideStatus(){ statusEl.classList.remove("on"); }
-function showTapPlay(){ loader.classList.remove("on"); tapPlay.classList.add("on"); }
-function hideTapPlay(){ tapPlay.classList.remove("on"); }
-async function tryPlay(){
-  try{
-    await videoEl.play();
-    hideTapPlay();
-  }catch(e){
-    console.warn("Autoplay prevented:", e);
-    showTapPlay();
-  }
-}
-function getSeekEnd(){
-  if (usingNative){
-    try { return videoEl.seekable.length ? videoEl.seekable.end(videoEl.seekable.length - 1) : videoEl.currentTime; }
-    catch(e){ return videoEl.currentTime; }
-  }
-  try { return player.seekRange().end; } catch(e){ return videoEl.currentTime; }
-}
-function isLiveStream(){
-  if (usingNative) return videoEl.duration === Infinity;
-  try { return player.isLive(); } catch(e){ return false; }
-}
+
 function seekToLive(){
   try{
-    if (isLiveStream()){
-      const rangeEnd = getSeekEnd();
-      const target = Math.max(0.5, rangeEnd - 3);
-      videoEl.currentTime = target;
+    if (player.isLive()){
+      const range = player.seekRange();
+      const target = range.end - 2;
+      videoEl.currentTime = Math.max(range.start + 0.5, target);
       videoEl.play().catch(()=>{});
     }
   }catch(e){}
 }
+
 function updateLiveBadge(){
-  if (!isLiveStream()){ liveBadge.classList.remove("show"); return; }
+  if (!player || !player.isLive()){ liveBadge.classList.remove("show"); return; }
   liveBadge.classList.add("show");
-  const behind = getSeekEnd() - videoEl.currentTime;
-  liveBadge.classList.toggle("behind", behind > LIVE_EDGE_TOLERANCE);
+  try{
+    const behind = player.seekRange().end - videoEl.currentTime;
+    liveBadge.classList.toggle("behind", behind > LIVE_EDGE_TOLERANCE);
+  }catch(e){}
 }
+
 function startWatchdog(){
   let lastTime = -1, stalls = 0, inStall = false;
   clearInterval(watchdogTimer);
@@ -178,28 +172,28 @@ function startWatchdog(){
         inStall = true;
         console.warn("Watchdog: stall detected, reducing quality and waiting for buffer.");
         try{
-          if (!usingNative){
-            const variants = player.getVariantTracks();
-            const current = variants.find(t => t.active);
-            if (current && current.bandwidth > 6000000 && variants.length > 1){
-              const lower = variants.filter(t => t.bandwidth < current.bandwidth).sort((a,b)=>b.bandwidth-a.bandwidth)[0];
-              if (lower) player.selectVariantTrack(lower, true);
-            }
+          const cfg = player.getConfiguration();
+          const variants = player.getVariantTracks();
+          const current = variants.find(t => t.active);
+          if (current && current.bandwidth > 6000000 && variants.length > 1){
+            const lower = variants.filter(t => t.bandwidth < current.bandwidth).sort((a,b)=>b.bandwidth-a.bandwidth)[0];
+            if (lower) player.selectVariantTrack(lower, true);
           }
         }catch(e){}
         videoEl.pause();
-        setTimeout(() => { videoEl.play().catch(()=>{}); inStall = false; }, 1800);
+        setTimeout(() => { videoEl.play().catch(()=>{}); inStall = false; }, 1500);
         stalls = 0;
       }
     } else { stalls = 0; }
     lastTime = videoEl.currentTime;
   }, 1000);
 }
+
 function bindKeys(){
   document.addEventListener("keydown", (e) => {
     switch (e.key.toLowerCase()){
       case " ": case "k": e.preventDefault(); videoEl.paused ? videoEl.play() : videoEl.pause(); break;
-      case "f": document.fullscreenElement ? document.exitFullscreen() : (container.requestFullscreen && container.requestFullscreen()); break;
+      case "f": document.fullscreenElement ? document.exitFullscreen() : container.requestFullscreen(); break;
       case "m": videoEl.muted = !videoEl.muted; break;
       case "l": seekToLive(); break;
       case "arrowup":   e.preventDefault(); videoEl.volume = Math.min(1, videoEl.volume + 0.1); break;
@@ -207,31 +201,8 @@ function bindKeys(){
     }
   });
 }
-function loadNativeHls(){
-  usingNative = true;
-  document.body.classList.add("ios");
-  videoEl.controls = true;
-  loaderTxt.textContent = "Loading stream…";
-  loader.classList.add("on");
-  videoEl.src = STREAM_URL;
-  videoEl.addEventListener("canplay", () => {
-    loader.classList.remove("on");
-    hideStatus();
-    tryPlay();
-  }, { once:true });
-  videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideTapPlay(); hideStatus(); });
-  videoEl.addEventListener("error", () => scheduleAutoReload());
-  videoEl.load();
-}
-function reloadNativeHls(){
-  hideStatus();
-  loader.classList.add("on");
-  videoEl.src = STREAM_URL;
-  videoEl.load();
-  videoEl.addEventListener("canplay", () => { loader.classList.remove("on"); tryPlay(); }, { once:true });
-}
+
 async function loadStream(){
-  if (usingNative){ reloadNativeHls(); return; }
   hideStatus();
   loaderTxt.textContent = autoReloads ? `Reconnecting… (${autoReloads}/${MAX_AUTO_RELOADS})` : "Loading stream…";
   loader.classList.add("on");
@@ -241,11 +212,20 @@ async function loadStream(){
     loader.classList.remove("on");
     hideStatus();
     if (player.isLive()) seekToLive();
-    await tryPlay();
+    try{ await videoEl.play(); } catch(e){ console.warn("Autoplay prevented:", e); }
     updateLiveBadge();
-  }catch(e){ handleError(e); }
+  }catch(e){
+    handleError(e);
+  }
 }
+
 document.addEventListener("DOMContentLoaded", async () => {
+  shaka.polyfill.installAll();
+  if (!shaka.Player.isBrowserSupported()){
+    document.body.innerHTML = "<div style='color:#fff;padding:40px;font:16px sans-serif'>Your browser is not supported. Please use an up-to-date Chrome, Edge or Firefox.</div>";
+    return;
+  }
+
   videoEl     = document.getElementById("v");
   container   = document.getElementById("pc");
   loader      = document.getElementById("loader");
@@ -255,29 +235,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   statusMsg   = document.getElementById("statusMsg");
   statusBtn   = document.getElementById("statusBtn");
   liveBadge   = document.getElementById("live");
-  tapPlay     = document.getElementById("tapPlay");
 
-  liveBadge.addEventListener("click", seekToLive);
-  tapPlay.addEventListener("click", () => {
-    videoEl.muted = false;
-    videoEl.play().then(hideTapPlay).catch(()=>{ videoEl.muted = true; videoEl.play().then(hideTapPlay).catch(()=>{}); });
-  });
-  container.addEventListener("contextmenu", (e) => e.preventDefault());
-
-  if (IS_IOS && videoEl.canPlayType('application/vnd.apple.mpegurl')){
-    statusBtn.addEventListener("click", () => { autoReloads = 0; reloadNativeHls(); });
-    startWatchdog();
-    loadNativeHls();
-    return;
-  }
-
-  shaka.polyfill.installAll();
-  if (!shaka.Player.isBrowserSupported()){
-    document.body.innerHTML = "<div style='color:#fff;padding:40px;font:16px sans-serif'>Your browser is not supported. Please use an up-to-date Chrome, Edge or Firefox.</div>";
-    return;
-  }
   player = new shaka.Player();
   await player.attach(videoEl);
+
   const ui = new shaka.ui.Overlay(player, container, videoEl);
   ui.configure({
     controlPanelElements: [
@@ -290,42 +251,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     doubleClickForFullscreen: true,
     tapSeekDistance: 10,
   });
-  player.configure({
+
+  const playerConfig = {
     abr: {
-      enabled:true,
-      defaultBandwidthEstimate:50000000,
-      switchInterval:4,
-      bandwidthDowngradeTarget:0.85,
-      bandwidthUpgradeTarget:0.70,
-      restrictToElementSize:false,
+      enabled: true,
+      defaultBandwidthEstimate: 12000000,
+      switchInterval: 8,
+      bandwidthDowngradeTarget: 0.7,
+      bandwidthUpgradeTarget: 0.85,
+      restrictToElementSize: false,
+      advanced: {
+        minTotalBytes: 1000000,
+        minBytes: 256000,
+        fastHalfLife: 2,
+        slowHalfLife: 5
+      }
+    },
+    manifest: {
+      defaultPresentationDelay: 12,
+      dash: { ignoreSuggestedPresentationDelay: true, ignoreMinBufferTime: true, autoCorrectDrift: true },
+      retryParameters: { maxAttempts: 6, baseDelay: 500, backoffFactor: 1.3, fuzzFactor: 0.3, timeout: 20000 }
     },
     streaming: {
-      bufferingGoal:BUFFERING_GOAL,
-      rebufferingGoal:REBUFFERING_GOAL,
-      bufferBehind:BUFFER_BEHIND,
-      lowLatencyMode:false,
-      jumpLargeGaps:true,
-      gapDetectionThreshold:0.5,
-      stallEnabled:true,
-      stallThreshold:2,
-      stallSkip:0.5,
-      retryParameters:{ maxAttempts:10, baseDelay:400, backoffFactor:1.5, fuzzFactor:0.4, timeout:30000 }
+      bufferingGoal:   30,
+      rebufferingGoal: 2,
+      bufferBehind:    10,
+      lowLatencyMode:  false,
+      jumpLargeGaps:   true,
+      gapDetectionThreshold: 0.5,
+      stallEnabled:    true,
+      stallThreshold:  1,
+      stallSkip:       0.2,
+      startAtSegmentBoundary: true,
+      retryParameters: { maxAttempts: 8, baseDelay: 300, backoffFactor: 1.3, fuzzFactor: 0.3, timeout: 20000 }
     }
-  });
+  };
+
+  if (KEY_ID && KEY){
+    playerConfig.drm = { clearKeys: { [KEY_ID]: KEY } };
+  }
+  player.configure(playerConfig);
+
   player.addEventListener("error", onPlayerErrorEvent);
   player.addEventListener("buffering", (e) => {
     loader.classList.toggle("on", e.buffering);
     if (e.buffering) loaderTxt.textContent = "Connecting to server…";
   });
-  videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideTapPlay(); hideStatus(); });
+  videoEl.addEventListener("playing", () => { loader.classList.remove("on"); hideStatus(); });
   videoEl.addEventListener("waiting", () => { loader.classList.add("on"); });
+
   const controlsContainer = container.querySelector(".shaka-controls-container");
   if (controlsContainer){
     new MutationObserver(() => {
       container.classList.toggle("controls-visible", controlsContainer.getAttribute("shown") !== null);
     }).observe(controlsContainer, { attributes:true, attributeFilter:["shown"] });
   }
+
+  liveBadge.addEventListener("click", seekToLive);
   statusBtn.addEventListener("click", () => { autoReloads = 0; loadStream(); });
+  container.addEventListener("contextmenu", (e) => e.preventDefault());
+
   bindKeys();
   startWatchdog();
   await loadStream();
